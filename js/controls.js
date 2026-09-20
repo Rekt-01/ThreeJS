@@ -19,7 +19,7 @@ export function setupThirdPersonControls(character, renderer) {
         if (!isDragging || e.touches.length === 0) return;
         const t = e.touches[0];
         const deltaX = t.clientX - previousTouchX;
-        cameraAngleY -= deltaX * 0.003; // Calibrated for smooth rotation
+        cameraAngleY -= deltaX * 0.003; 
         previousTouchX = t.clientX;
     }, { passive: false });
 
@@ -61,12 +61,11 @@ export function setupThirdPersonControls(character, renderer) {
     window.addEventListener('keyup', (e) => { if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false; });
 
     return function updateControls(delta, camera) {
-        const speed = 7.5; // Controlled, stable walking speed
+        const speed = 7.5; 
         const turnSpeed = 3.0;
         let isWalking = false;
 
-        // Apply deadzone so minor joystick touches don't cause jitter
-        if (joystickActive && joystickryptedLength() > 0.05 || joystickActive) {
+        if (joystickActive) {
             if (Math.abs(joystickDirection.x) > 0.1) {
                 character.rotation.y -= joystickDirection.x * turnSpeed * delta;
             }
@@ -86,12 +85,10 @@ export function setupThirdPersonControls(character, renderer) {
         if (keys.w) { character.position.addScaledVector(moveDir, speed * delta); isWalking = true; }
         if (keys.s) { character.position.addScaledVector(moveDir, -speed * delta); isWalking = true; }
 
-        // Boundaries
         const maxDist = 95;
         character.position.x = Math.max(-maxDist, Math.min(maxDist, character.position.x));
         character.position.z = Math.max(-maxDist, Math.min(maxDist, character.position.z));
 
-        // Smooth camera follow without jarring snaps
         const idealOffset = new THREE.Vector3(
             Math.sin(cameraAngleY) * 4.5, 
             2.0, 
