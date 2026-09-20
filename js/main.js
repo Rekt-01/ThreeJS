@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { createSceneSetup } from './sceneSetup.js';
 import { createEnvironment } from './environment.js';
 import { createProceduralTree } from './treeGenerator.js';
-import { setupMobileControls } from './controls.js'; // 1. Import your new controls
+import { setupThirdPersonControls } from './controls.js';
+import { createProceduralCharacter } from './character.js';
 
 try {
     // 1. Initialize Scene, Camera, Renderer & Post-Processing
@@ -13,10 +14,14 @@ try {
     const tree = createProceduralTree();
     scene.add(tree);
 
-    // 3. Initialize Walking Controls (Replaces OrbitControls)
-    const updateControls = setupMobileControls(camera, renderer);
+    // 3. Add Procedural Character to Scene
+    const character = createProceduralCharacter();
+    scene.add(character.mesh);
 
-    // 4. Animation & Movement Loop
+    // 4. Initialize Third-Person Character Controls
+    const updateControls = setupThirdPersonControls(character.mesh, renderer);
+
+    // 5. Animation & Movement Loop
     const clock = new THREE.Clock();
 
     function animate() {
@@ -29,8 +34,11 @@ try {
         tree.rotation.z = Math.sin(time * 1.2) * 0.01;
         tree.rotation.x = Math.cos(time * 0.9) * 0.007;
 
-        // Update your walking movement and touch look each frame
-        updateControls(delta);
+        // Update character movement, camera follow, and check if walking
+        const isWalking = updateControls(delta, camera);
+
+        // Update character limbs and breathing animation
+        character.updateAnimation(time, isWalking, delta);
 
         composer.render();
     }
