@@ -1,5 +1,5 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // 1. Scene, Camera, & Renderer (with Shadows enabled)
 const scene = new THREE.Scene();
@@ -20,9 +20,9 @@ document.body.appendChild(renderer.domElement);
 
 // 2. Add Touch & Mouse Orbit Controls
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Smooth momentum inertia
+controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera from going below ground level
+controls.maxPolarAngle = Math.PI / 2 - 0.05;
 controls.minDistance = 10;
 controls.maxDistance = 80;
 
@@ -119,17 +119,16 @@ buildingGroup.add(antenna);
 
 scene.add(buildingGroup);
 
-// 5. Render Loop with Touch Damping Updates
+// 5. Render Loop
 function animate() {
     requestAnimationFrame(animate);
-
-    controls.update(); // Required for smooth mobile/desktop touch-damping inertia
+    controls.update();
     renderer.render(scene, camera);
 }
 
 animate();
 
-// Handle Window Resizing Responsively
+// Handle Window Resizing
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
