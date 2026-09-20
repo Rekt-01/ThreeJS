@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export function setupMobileControls(camera, renderer) {
-    // 1. Raise camera height for a better field perspective (was 1.7)
+    // 1. Raise camera height for a better field perspective
     camera.position.set(0, 2.8, 15);
     camera.rotation.order = 'YXZ';
 
@@ -9,12 +9,12 @@ export function setupMobileControls(camera, renderer) {
     let previousTouchX = 0;
     let previousTouchY = 0;
     
-    // Touch handlers for looking around
+    // Touch handlers for looking around (right side / free screen drag)
     window.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
-            // Ignore touches that start directly on the joystick UI (bottom-left area)
             const t = e.touches[0];
-            if (t.clientX < 150 && t.clientY > window.innerHeight - 150) return;
+            // Ignore touches starting on the joystick area
+            if (t.clientX < 160 && t.clientY > window.innerHeight - 160) return;
 
             isDragging = true;
             previousTouchX = t.clientX;
@@ -29,7 +29,6 @@ export function setupMobileControls(camera, renderer) {
         const deltaX = t.clientX - previousTouchX;
         const deltaY = t.clientY - previousTouchY;
         
-        // Slightly increased look sensitivity for snappy mobile response
         camera.rotation.y -= deltaX * 0.004;
         camera.rotation.x -= deltaY * 0.004;
         camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
@@ -42,7 +41,7 @@ export function setupMobileControls(camera, renderer) {
         isDragging = false;
     });
 
-    // Create a larger, more comfortable On-Screen Virtual Joystick UI
+    // Create Virtual Joystick UI
     const joystickUI = document.createElement('div');
     joystickUI.style.cssText = 'position:fixed; bottom:40px; left:40px; width:130px; height:130px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; z-index:999; touch-action:none; display:flex; align-items:center; justify-content:center;';
     
@@ -57,7 +56,7 @@ export function setupMobileControls(camera, renderer) {
     joystickUI.addEventListener('touchstart', (e) => {
         joystickActive = true;
         handleJoystick(e.touches[0]);
-        e.stopPropagation(); // Prevent trigger conflict with look handler
+        e.stopPropagation();
     }, { passive: false });
 
     joystickUI.addEventListener('touchmove', (e) => {
@@ -93,33 +92,39 @@ export function setupMobileControls(camera, renderer) {
         joystickDirection.set(knobX / maxRadius, knobY / maxRadius);
     }
 
-    // Desktop WASD Fallback keys
+    // Desktop keyboard fallback (A/D turns or strafes, W/S moves forward/back)
     const keys = { w: false, a: false, s: false, d: false };
-    window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = true; });
-    window.addEventListener('keyup', (e) => { if (e.key in keys) keys[e.key] = false; });
+    window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true; });
+    window.addEventListener('keyup', (e) => { if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false; });
 
-    // Update function called inside the main loop
+    // Update function called inside main animation loop
     return function updateControls(delta) {
-        // Increased walking speed multiplier (was 5.0, now 11.0 for snappier travel)
         const speed = 11.0 * delta;
+        const turnSpeed = 2.2 * delta; // Turning speed when steering left/right
+
+        // If pushing left/right on the joystick, smoothly rotate the camera heading (turning with the control)
+        if (joystickActive) {
+            camera.rotation.y -= joystickDirection.x * turnSpeed;
+        }
+
+        // Desktop keyboard turning/movement support
+        if (keys.a) camera.rotation.y += turnSpeed * 1.5;
+        if (keys.d) camera.rotation.y -= turnSpeed * 1.5;
+
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
         dir.y = 0;
         dir.normalize();
 
-        const sideDir = new THREE.Vector3(-dir.z, 0, dir.x);
-
+        // Forward / Backward motion based on joystick vertical axis or W/S keys
         if (joystickActive) {
             camera.position.addScaledVector(dir, -joystickDirection.y * speed);
-            camera.position.addScaledVector(sideDir, joystickDirection.x * speed);
         }
 
         if (keys.w) camera.position.addScaledVector(dir, speed);
         if (keys.s) camera.position.addScaledVector(dir, -speed);
-        if (keys.a) camera.position.addScaledVector(sideDir, -speed);
-        if (keys.d) camera.position.addScaledVector(sideDir, speed);
 
-        // Keep camera locked at the new higher eye-level height
+        // Lock camera height
         camera.position.y = 2.8;
 
         // Boundary constraints
