@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-// 1. Scene, Camera, & Bright Summer Atmosphere Setup
+// 1. Scene, Camera, & Cinematic Renderer Setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Bright daytime sky blue
-scene.fog = new THREE.FogExp2(0x87ceeb, 0.007); // Soft distant atmospheric haze
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.005);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 9, 25);
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 7, 24);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -15,25 +18,36 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.2;
 document.body.appendChild(renderer.domElement);
 
-// 2. Interactive Orbit Controls (Mouse & Touch compatible)
+// 2. Post-Processing Pipeline (Adds cinematic sun bloom & glow)
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.35,  // Bloom strength
+    0.4,   // Radius
+    0.85   // Threshold
+);
+composer.addPass(bloomPass);
+
+// 3. Interactive Orbit Controls (Mouse & Touch compatible)
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI / 2 - 0.02; // Keep camera above ground
-controls.minDistance = 6;
-controls.maxDistance = 50;
-controls.target.set(0, 5, 0);
+controls.maxPolarAngle = Math.PI / 2 - 0.01;
+controls.minDistance = 5;
+controls.maxDistance = 45;
+controls.target.set(0, 4.5, 0);
 
-// 3. Bright Summer Daylight Lighting
-// Sky hemisphere light (bright white-blue sky illuminating top, warm grass reflection from below)
-const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x557a2b, 0.9);
+// 4. Summer Day Lighting
+const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x446622, 0.85);
 scene.add(hemisphereLight);
 
-// High overhead golden summer sun
-const sunLight = new THREE.DirectionalLight(0xfffaf0, 2.8);
+const sunLight = new THREE.DirectionalLight(0xfffaf0, 3.2);
 sunLight.position.set(30, 50, 30);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
@@ -48,11 +62,11 @@ sunLight.shadow.camera.bottom = -d;
 sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 
-// 4. Vibrant Summer Field Ground
-const groundGeo = new THREE.PlaneGeometry(200, 200);
+// 5. Ground Field Terrain
+const groundGeo = new THREE.PlaneGeometry(250, 250);
 const groundMat = new THREE.MeshStandardMaterial({ 
-    color: 0x4a7c23, // Lush summer green grass
-    roughness: 0.8, 
+    color: 0x42701e, 
+    roughness: 0.85, 
     metalness: 0.05 
 });
 const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -60,42 +74,56 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// 5. High-Density Procedural Tree Generation
+// 6. Instanced Grass Field (Renders 15,000 individual blades instantly via GPU)
+const grassBladeGeo = new THREE.ConeGeometry(0.04, 0.6, 2);
+grassBladeGeo.translate(0, 0.3, 0); // Pivot at base
+const grassBladeMat = new THREE.MeshStandardMaterial({ 
+    color: 0x5a9a2a, 
+    roughness: 0.7,
+    side: THREE.DoubleSide
+});
+const grassCount = 15000;
+const grassInstanced = new THREE.InstancedMesh(grassBladeGeo, grassBladeMat, grassCount);
+grassInstanced.receiveShadow = true;
+
+const dummy = new THREE.Object3D();
+for (let i = 0; i < grassCount; i++) {
+    const radius = 2 + Math.random() * 45;
+    const theta = Math.random() * Math.PI * 2;
+    const x = Math.cos(theta) * radius;
+    const z = Math.sin(theta) * radius;
+    
+    dummy.position.set(x, 0, z);
+    dummy.scale.set(1, 0.5 + Math.random() * 0.8, 1);
+    dummy.rotation.y = Math.random() * Math.PI;
+    dummy.updateMatrix();
+    
+    grassInstanced.setMatrixAt(i, dummy.matrix);
+}
+scene.add(grassInstanced);
+
+// 7. Masterpiece Procedural Tree Generation
 const treeGroup = new THREE.Group();
 
-// Rich bark material
-const barkMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x4d392f, 
-    roughness: 0.9, 
-    metalness: 0.05 
-});
+const barkMat = new THREE.MeshStandardMaterial({ color: 0x423226, roughness: 0.9, metalness: 0.05 });
+const leafMat = new THREE.MeshStandardMaterial({ color: 0x4c8a22, roughness: 0.5, flatShading: true });
 
-// Vibrant sunlit summer leaf material
-const leafMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x528a25, 
-    roughness: 0.5, 
-    metalness: 0.1,
-    flatShading: true 
-});
-
-// Primary Trunk
-const trunkHeight = 6.5;
-const trunkGeo = new THREE.CylinderGeometry(0.3, 0.75, trunkHeight, 10);
+// Main Trunk
+const trunkHeight = 5.8;
+const trunkGeo = new THREE.CylinderGeometry(0.28, 0.7, trunkHeight, 10);
 trunkGeo.translate(0, trunkHeight / 2, 0);
-const trunk = new THREE.Mesh(trunkGeo, barkMaterial);
+const trunk = new THREE.Mesh(trunkGeo, barkMat);
 trunk.castShadow = true;
 trunk.receiveShadow = true;
 treeGroup.add(trunk);
 
-// Recursive branch & ultra-dense foliage generation logic
-const maxDepth = 4;
-const generateBranchSystem = (pos, radius, length, angleX, angleZ, depth) => {
-    if (depth > maxDepth) return;
+// Recursive branch and dense leaf cluster builder
+const buildBranch = (pos, radius, length, angleX, angleZ, depth) => {
+    if (depth > 4) return;
 
-    // Build branch segment
-    const branchGeo = new THREE.CylinderGeometry(radius * 0.65, radius, length, 6);
-    branchGeo.translate(0, length / 2, 0);
-    const branch = new THREE.Mesh(branchGeo, barkMaterial);
+    const bGeo = new THREE.CylinderGeometry(radius * 0.6, radius, length, 6);
+    bGeo.translate(0, length / 2, 0);
+    const branch = new THREE.Mesh(bGeo, barkMat);
     branch.position.copy(pos);
     branch.rotation.x = angleX;
     branch.rotation.z = angleZ;
@@ -103,78 +131,63 @@ const generateBranchSystem = (pos, radius, length, angleX, angleZ, depth) => {
     branch.receiveShadow = true;
     treeGroup.add(branch);
 
-    // Calculate branch tip location
     const tip = new THREE.Vector3(0, length, 0);
     tip.applyEuler(new THREE.Euler(angleX, 0, angleZ));
     tip.add(pos);
 
-    if (depth === maxDepth) {
-        // High density leaf cluster clouds at final branch tips
-        const clusterCount = 5;
-        for (let c = 0; c < clusterCount; c++) {
-            const size = 1.0 + Math.random() * 0.9;
-            const leafGeo = new THREE.DodecahedronGeometry(size, 1);
+    if (depth === 4) {
+        // High density leaf clouds
+        for (let c = 0; c < 6; c++) {
+            const size = 0.9 + Math.random() * 0.8;
+            const lGeo = new THREE.DodecahedronGeometry(size, 1);
             
-            // Displace vertices to create lush organic puff shapes
-            const v = leafGeo.attributes.position;
+            const v = lGeo.attributes.position;
             for (let i = 0; i < v.count; i++) {
-                v.setX(i, v.getX(i) + (Math.random() - 0.5) * 0.4);
-                v.setY(i, v.getY(i) + (Math.random() - 0.5) * 0.4);
-                v.setZ(i, v.getZ(i) + (Math.random() - 0.5) * 0.4);
+                v.setX(i, v.getX(i) + (Math.random() - 0.5) * 0.35);
+                v.setY(i, v.getY(i) + (Math.random() - 0.5) * 0.35);
+                v.setZ(i, v.getZ(i) + (Math.random() - 0.5) * 0.35);
             }
-            leafGeo.computeVertexNormals();
+            lGeo.computeVertexNormals();
 
-            const cluster = new THREE.Mesh(leafGeo, leafMaterial);
-            cluster.position.set(
-                tip.x + (Math.random() - 0.5) * 1.8,
+            const leafCloud = new THREE.Mesh(lGeo, leafMat);
+            leafCloud.position.set(
+                tip.x + (Math.random() - 0.5) * 1.6,
                 tip.y + (Math.random() - 0.5) * 1.2,
-                tip.z + (Math.random() - 0.5) * 1.8
+                tip.z + (Math.random() - 0.5) * 1.6
             );
-            cluster.castShadow = true;
-            treeGroup.add(cluster);
+            leafCloud.castShadow = true;
+            treeGroup.add(leafCloud);
         }
     } else {
-        // Sub-branches split out organically
-        const splits = 3;
-        for (let i = 0; i < splits; i++) {
-            const nextLength = length * 0.72;
-            const nextRadius = radius * 0.6;
-            const nextAngleX = angleX + (Math.random() - 0.3) * 0.5;
-            const nextAngleZ = angleZ + (Math.random() - 0.5) * 0.7;
-            generateBranchSystem(tip, nextRadius, nextLength, nextAngleX, nextAngleZ, depth + 1);
+        for (let i = 0; i < 3; i++) {
+            buildBranch(tip, radius * 0.58, length * 0.72, angleX + (Math.random() - 0.3) * 0.45, angleZ + (Math.random() - 0.5) * 0.7, depth + 1);
         }
     }
 };
 
-// Spawn main structural limbs from top of trunk
-const primaryLimbs = 5;
-for (let i = 0; i < primaryLimbs; i++) {
-    const angle = (i / primaryLimbs) * Math.PI * 2;
+const limbs = 5;
+for (let i = 0; i < limbs; i++) {
+    const angle = (i / limbs) * Math.PI * 2;
     const startPos = new THREE.Vector3(0, trunkHeight * 0.85, 0);
-    const ax = 0.5 + Math.random() * 0.25;
+    const ax = 0.48 + Math.random() * 0.2;
     const az = (Math.random() - 0.5) * 0.3;
-    
-    const rotX = Math.cos(angle) * ax;
-    const rotZ = Math.sin(angle) * ax;
-
-    generateBranchSystem(startPos, 0.24, 2.8, rotX, rotZ, 2);
+    buildBranch(startPos, 0.22, 2.5, Math.cos(angle) * ax, Math.sin(angle) * ax, 2);
 }
 
 scene.add(treeGroup);
 
-// 6. Animation Loop with Organic Summer Breeze
+// 8. Animation & Organic Wind Simulation Loop
 const clock = new THREE.Clock();
 
 function animate() {
     requestAnimationFrame(animate);
     
     const time = clock.getElapsedTime();
-    // Gentle sway to mimic a warm summer breeze blowing through the canopy
-    treeGroup.rotation.z = Math.sin(time * 1.1) * 0.012;
-    treeGroup.rotation.x = Math.cos(time * 0.8) * 0.008;
+    treeGroup.rotation.z = Math.sin(time * 1.2) * 0.01;
+    treeGroup.rotation.x = Math.cos(time * 0.9) * 0.007;
 
     controls.update();
-    renderer.render(scene, camera);
+    composer.render(); // Render scene through cinematic post-processing bloom pipeline
 }
 
 animate();
@@ -184,4 +197,5 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
 });
