@@ -1,137 +1,199 @@
 import * as THREE from 'three';
 
 export function createProceduralCharacter() {
-    const characterGroup = new THREE.Group();
+    const character = new THREE.Group();
 
-    // Materials matching the style
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.5 });
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x4a3319, roughness: 0.8 }); // Brown hair/hood
-    const shirtMat = new THREE.MeshStandardMaterial({ color: 0xdc3545, roughness: 0.4 }); // Bright Red shirt[span_1](start_span)[span_1](end_span)
-    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.6 }); 
-    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.7 }); 
-    const maskMat = new THREE.MeshStandardMaterial({ color: 0xf8f9fa, roughness: 0.3 }); // White hockey mask[span_2](start_span)[span_2](end_span)
-    const darkSlotMat = new THREE.MeshBasicMaterial({ color: 0x111111 }); // Dark eyes/holes[span_3](start_span)[span_3](end_span)
+    // ── Materials (flat, bold, stylized) ─────────────────────
+    const skinMat = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
+    const hairMat = new THREE.MeshLambertMaterial({ color: 0x3b2a1a });
+    const shirtMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f });
+    const pantsMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+    const bootMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const maskMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+    const darkMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const strapMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
 
-    // 1. Head & Hair
+    // ── HEAD (oversized for stylized look) ───────────────────
     const headGroup = new THREE.Group();
-    headGroup.position.y = 1.45;
+    headGroup.position.y = 1.55;
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), skinMat);
-    head.scale.set(1, 1.2, 1);
+    // Simple boxy head
+    const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, 0.36, 0.30),
+        skinMat
+    );
     headGroup.add(head);
 
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.138, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat);
-    hair.position.set(0, 0.03, -0.01);
+    // Hair / hood top
+    const hair = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.18, 0.32),
+        hairMat
+    );
+    hair.position.y = 0.14;
     headGroup.add(hair);
 
-    // 2. Hockey Mask (Attached to face)[span_4](start_span)[span_4](end_span)
+    // ── HOCKEY MASK (iconic + ultra simple) ──────────────────
     const maskGroup = new THREE.Group();
-    maskGroup.position.set(0, 0, 0.03);
+    maskGroup.position.set(0, 0.02, 0.16);
 
-    // Main white mask plate
-    const maskPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.04), maskMat);
-    maskGroup.add(maskPlate);
+    // Main mask plate
+    const mask = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.38, 0.06),
+        maskMat
+    );
+    maskGroup.add(mask);
 
-    // Cross Eyes (Dark cross shapes)[span_5](start_span)[span_5](end_span)
-    const eyeHoleGeo = new THREE.BoxGeometry(0.035, 0.035, 0.05);
-    
-    // Left Cross Eye
-    const leftEyeH = new THREE.Mesh(eyeHoleGeo, darkSlotMat);
-    leftEyeH.position.set(-0.05, 0.04, 0.01);
-    const leftEyeV = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.05, 0.05), darkSlotMat);
-    leftEyeV.position.set(-0.05, 0.04, 0.01);
+    // Cross eyes
+    const eyeH = new THREE.BoxGeometry(0.07, 0.025, 0.08);
+    const eyeV = new THREE.BoxGeometry(0.025, 0.09, 0.08);
 
-    // Right Cross Eye
-    const rightEyeH = new THREE.Mesh(eyeHoleGeo, darkSlotMat);
-    rightEyeH.position.set(0.05, 0.04, 0.01);
-    const rightEyeV = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.05, 0.05), darkSlotMat);
-    rightEyeV.position.set(0.05, 0.04, 0.01);
+    // Left eye
+    const leftH = new THREE.Mesh(eyeH, darkMat);
+    leftH.position.set(-0.08, 0.07, 0.02);
+    const leftV = new THREE.Mesh(eyeV, darkMat);
+    leftV.position.set(-0.08, 0.07, 0.02);
 
-    maskGroup.add(leftEyeH, leftEyeV, rightEyeH, rightEyeV);
+    // Right eye
+    const rightH = new THREE.Mesh(eyeH, darkMat);
+    rightH.position.set(0.08, 0.07, 0.02);
+    const rightV = new THREE.Mesh(eyeV, darkMat);
+    rightV.position.set(0.08, 0.07, 0.02);
 
-    // Mouth / Jaw Ventilation Slots[span_6](start_span)[span_6](end_span)
+    maskGroup.add(leftH, leftV, rightH, rightV);
+
+    // Mouth vents (simple vertical slots)
     for (let i = -1; i <= 1; i++) {
-        const slot = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.05), darkSlotMat);
-        slot.position.set(i * 0.035, -0.07, 0.01);
-        maskGroup.add(slot);
+        const vent = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, 0.07, 0.08),
+            darkMat
+        );
+        vent.position.set(i * 0.07, -0.09, 0.02);
+        maskGroup.add(vent);
     }
-    for (let i = -1; i <= 1; i++) {
-        const slot = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.05), darkSlotMat);
-        slot.position.set(i * 0.035, -0.11, 0.01);
-        maskGroup.add(slot);
-    }
+
+    // Side straps
+    const strap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.28, 0.05),
+        strapMat
+    );
+    const leftStrap = strap.clone();
+    leftStrap.position.set(-0.18, 0.02, -0.05);
+    const rightStrap = strap.clone();
+    rightStrap.position.set(0.18, 0.02, -0.05);
+    maskGroup.add(leftStrap, rightStrap);
 
     headGroup.add(maskGroup);
-    characterGroup.add(headGroup);
+    character.add(headGroup);
 
-    // 3. Torso (Red Shirt)[span_7](start_span)[span_7](end_span)
-    const torsoGeo = new THREE.CylinderGeometry(0.18, 0.11, 0.55, 12);
-    const torso = new THREE.Mesh(torsoGeo, shirtMat);
-    torso.position.y = 0.95;
+    // ── TORSO ────────────────────────────────────────────────
+    const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.55, 0.28),
+        shirtMat
+    );
+    torso.position.y = 1.05;
     torso.castShadow = true;
-    characterGroup.add(torso);
+    character.add(torso);
 
-    // 4. Limbs Group
-    const limbsGroup = new THREE.Group();
+    // Simple collar
+    const collar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.36, 0.08, 0.30),
+        shirtMat
+    );
+    collar.position.y = 1.34;
+    character.add(collar);
 
-    // Arms
-    const armGeo = new THREE.CylinderGeometry(0.04, 0.032, 0.48, 8);
-    armGeo.translate(0, -0.2, 0);
+    // ── ARMS ─────────────────────────────────────────────────
+    const armGeo = new THREE.BoxGeometry(0.12, 0.48, 0.12);
 
-    const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.21, 1.15, 0);
-    leftArmGroup.add(new THREE.Mesh(armGeo, shirtMat));
-    limbsGroup.add(leftArmGroup);
+    const leftArm = new THREE.Group();
+    leftArm.position.set(-0.28, 1.22, 0);
+    const leftArmMesh = new THREE.Mesh(armGeo, shirtMat);
+    leftArmMesh.position.y = -0.18;
+    leftArm.add(leftArmMesh);
 
-    const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.21, 1.15, 0);
-    rightArmGroup.add(new THREE.Mesh(armGeo, shirtMat));
-    limbsGroup.add(rightArmGroup);
+    // Simple hand
+    const handGeo = new THREE.BoxGeometry(0.13, 0.13, 0.13);
+    const leftHand = new THREE.Mesh(handGeo, skinMat);
+    leftHand.position.y = -0.46;
+    leftArm.add(leftHand);
+    character.add(leftArm);
 
-    // Legs
-    const legGeo = new THREE.CylinderGeometry(0.055, 0.04, 0.55, 8);
-    legGeo.translate(0, -0.25, 0);
+    const rightArm = new THREE.Group();
+    rightArm.position.set(0.28, 1.22, 0);
+    const rightArmMesh = new THREE.Mesh(armGeo, shirtMat);
+    rightArmMesh.position.y = -0.18;
+    rightArm.add(rightArmMesh);
+    const rightHand = new THREE.Mesh(handGeo, skinMat);
+    rightHand.position.y = -0.46;
+    rightArm.add(rightHand);
+    character.add(rightArm);
 
-    const leftLegGroup = new THREE.Group();
-    leftLegGroup.position.set(-0.08, 0.68, 0);
-    const leftLeg = new THREE.Mesh(legGeo, pantsMat);
-    const leftShoe = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.14), shoeMat);
-    leftShoe.position.set(0, -0.52, 0.03);
-    leftLegGroup.add(leftLeg, leftShoe);
-    limbsGroup.add(leftLegGroup);
+    // ── LEGS ─────────────────────────────────────────────────
+    const legGeo = new THREE.BoxGeometry(0.15, 0.52, 0.15);
 
-    const rightLegGroup = new THREE.Group();
-    rightLegGroup.position.set(0.08, 0.68, 0);
-    const rightLeg = new THREE.Mesh(legGeo, pantsMat);
-    const rightShoe = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.14), shoeMat);
-    rightShoe.position.set(0, -0.52, 0.03);
-    rightLegGroup.add(rightLeg, rightShoe);
-    limbsGroup.add(rightLegGroup);
+    const leftLeg = new THREE.Group();
+    leftLeg.position.set(-0.12, 0.72, 0);
+    const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+    leftLegMesh.position.y = -0.20;
+    leftLeg.add(leftLegMesh);
 
-    characterGroup.add(limbsGroup);
+    // Boot
+    const bootGeo = new THREE.BoxGeometry(0.16, 0.12, 0.22);
+    const leftBoot = new THREE.Mesh(bootGeo, bootMat);
+    leftBoot.position.set(0, -0.50, 0.03);
+    leftLeg.add(leftBoot);
+    character.add(leftLeg);
 
-    let walkCycle = 0;
+    const rightLeg = new THREE.Group();
+    rightLeg.position.set(0.12, 0.72, 0);
+    const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+    rightLegMesh.position.y = -0.20;
+    rightLeg.add(rightLegMesh);
+    const rightBoot = new THREE.Mesh(bootGeo, bootMat);
+    rightBoot.position.set(0, -0.50, 0.03);
+    rightLeg.add(rightBoot);
+    character.add(rightLeg);
+
+    // ── Animation ────────────────────────────────────────────
+    let phase = 0;
 
     return {
-        mesh: characterGroup,
+        mesh: character,
+
         updateAnimation: (time, isWalking, delta) => {
             if (isWalking) {
-                walkCycle += delta * 14;
-                limbsGroup.position.y = Math.sin(walkCycle * 2) * 0.04;
-                torso.rotation.z = Math.sin(walkCycle) * 0.03;
+                phase += delta * 10;
 
-                leftArmGroup.rotation.x = Math.sin(walkCycle) * 0.6;
-                rightArmGroup.rotation.x = -Math.sin(walkCycle) * 0.6;
-                leftLegGroup.rotation.x = -Math.sin(walkCycle) * 0.6;
-                rightLegGroup.rotation.x = Math.sin(walkCycle) * 0.6;
+                const swing = Math.sin(phase);
+                const bob = Math.sin(phase * 2) * 0.04;
+
+                // Body bob
+                character.position.y = bob;
+
+                // Arms
+                leftArm.rotation.x = swing * 0.7;
+                rightArm.rotation.x = -swing * 0.7;
+
+                // Legs
+                leftLeg.rotation.x = -swing * 0.65;
+                rightLeg.rotation.x = swing * 0.65;
+
+                // Slight torso twist
+                torso.rotation.y = swing * 0.08;
+                headGroup.rotation.y = -swing * 0.1;
+
             } else {
-                walkCycle = 0;
-                limbsGroup.position.y = THREE.MathUtils.lerp(limbsGroup.position.y, Math.sin(time * 2) * 0.008, 0.1);
-                torso.rotation.z = THREE.MathUtils.lerp(torso.rotation.z, 0, 0.1);
-                leftArmGroup.rotation.x = THREE.MathUtils.lerp(leftArmGroup.rotation.x, 0, 0.1);
-                rightArmGroup.rotation.x = THREE.MathUtils.lerp(rightArmGroup.rotation.x, 0, 0.1);
-                leftLegGroup.rotation.x = THREE.MathUtils.lerp(leftLegGroup.rotation.x, 0, 0.1);
-                rightLegGroup.rotation.x = THREE.MathUtils.lerp(rightLegGroup.rotation.x, 0, 0.1);
+                // Idle
+                phase = 0;
+                const breath = Math.sin(time * 2) * 0.015;
+
+                character.position.y = THREE.MathUtils.lerp(character.position.y, breath, 0.1);
+                leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.1, 0.1);
+                rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -0.1, 0.1);
+                leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.1);
+                rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.1);
+                torso.rotation.y = THREE.MathUtils.lerp(torso.rotation.y, 0, 0.1);
+                headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, 0, 0.1);
             }
         }
     };
