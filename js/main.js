@@ -4,36 +4,53 @@ import { createSceneSetup } from './sceneSetup.js';
 import { createEnvironment } from './environment.js';
 import { createProceduralTree } from './treeGenerator.js';
 
-// 1. Initialize Scene, Camera, Renderer & Post-Processing
-const { scene, camera, renderer, composer } = createSceneSetup();
+try {
+    // 1. Initialize Scene, Camera, Renderer & Post-Processing
+    const { scene, camera, renderer, composer } = createSceneSetup();
 
-// 2. Add Orbit Controls (Mouse & Touch compatible)
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.maxPolarAngle = Math.PI / 2 - 0.01;
-controls.minDistance = 5;
-controls.maxDistance = 45;
-controls.target.set(0, 4.5, 0);
+    // 2. Add Orbit Controls (Mouse & Touch compatible)
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.01;
+    controls.minDistance = 5;
+    controls.maxDistance = 45;
+    controls.target.set(0, 4.5, 0);
 
-// 3. Build Environment and Tree
-createEnvironment(scene);
-const tree = createProceduralTree();
-scene.add(tree);
+    // 3. Build Environment and Tree
+    createEnvironment(scene);
+    const tree = createProceduralTree();
+    scene.add(tree);
 
-// 4. Animation & Wind Sway Loop
-const clock = new THREE.Clock();
+    // 4. Animation & Wind Sway Loop
+    const clock = new THREE.Clock();
 
-function animate() {
-    requestAnimationFrame(animate);
-    
-    const time = clock.getElapsedTime();
-    tree.rotation.z = Math.sin(time * 1.2) * 0.01;
-    tree.rotation.x = Math.cos(time * 0.9) * 0.007;
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        const time = clock.getElapsedTime();
+        tree.rotation.z = Math.sin(time * 1.2) * 0.01;
+        tree.rotation.x = Math.cos(time * 0.9) * 0.007;
 
-    controls.update();
-    composer.render();
+        controls.update();
+        composer.render();
+    }
+
+    animate();
+
+} catch (error) {
+    // If anything fails, print the error directly on your iPhone screen
+    const errorDiv = document.createElement('div');
+    errorDiv.style.position = 'absolute';
+    errorDiv.style.top = '20px';
+    errorDiv.style.left = '20px';
+    errorDiv.style.color = '#ff3333';
+    errorDiv.style.background = 'rgba(0,0,0,0.8)';
+    errorDiv.style.padding = '20px';
+    errorDiv.style.fontFamily = 'monospace';
+    errorDiv.style.zIndex = '9999';
+    errorDiv.style.maxHeight = '80vh';
+    errorDiv.style.overflow = 'auto';
+    errorDiv.innerHTML = `<strong>Error Caught:</strong><br>${error.message}<br><br>${error.stack}`;
+    document.body.appendChild(errorDiv);
 }
-
-animate();
-
