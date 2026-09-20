@@ -34,13 +34,23 @@ scene.add(particleSphere);
 
 camera.position.z = 4;
 
-// 4. Mouse Tracking Interactivity
+// 4. Desktop Mouse & Mobile Touch Interactivity
 let mouseX = 0;
 let mouseY = 0;
+
+// Mouse tracking for desktop
 window.addEventListener('mousemove', (event) => {
     mouseX = (event.clientX / window.innerWidth) * 2 - 1;
     mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
 });
+
+// Touch tracking for mobile devices
+window.addEventListener('touchmove', (event) => {
+    if (event.touches.length > 0) {
+        mouseX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+    }
+}, { passive: true });
 
 // 5. The 60 FPS Render Loop
 const clock = new THREE.Clock();
@@ -54,7 +64,7 @@ function animate() {
     particleSphere.rotation.y = elapsedTime * 0.05;
     particleSphere.rotation.x = elapsedTime * 0.02;
 
-    // Make particles react dynamically to your mouse cursor position
+    // Make particles react dynamically to cursor or thumb positions
     particleSphere.rotation.y += mouseX * 0.05;
     particleSphere.rotation.x += mouseY * 0.05;
 
@@ -63,7 +73,7 @@ function animate() {
 
 animate();
 
-// Handle browser window resizing smoothly
+// Handle browser window resizing smoothly across devices
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
