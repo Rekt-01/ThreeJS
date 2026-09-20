@@ -15,6 +15,15 @@
             display: block;
         }
     </style>
+    <!-- Global Error Catcher for iPhone -->
+    <script>
+        window.addEventListener('error', function(event) {
+            const d = document.createElement('div');
+            d.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;z-index:99999;padding:20px;font-family:monospace;font-size:14px;word-break:break-all;box-sizing:border-box;';
+            d.innerText = 'Error: ' + event.message + ' \nAt: ' + event.filename + ':' + event.lineno;
+            document.body.appendChild(d);
+        });
+    </script>
     <script type="importmap">
       {
         "imports": {
