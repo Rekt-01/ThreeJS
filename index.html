@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realistic Summer Tree</title>
+  <title>Realistic Summer World</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { overflow: hidden; background: #87ceeb; }
     canvas { display: block; }
   </style>
-</head>
-<body>
+
+  <!-- Import map for Three.js -->
   <script type="importmap">
   {
     "imports": {
@@ -19,51 +19,9 @@
     }
   }
   </script>
-
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-
-    // ====================== SCENE SETUP ======================
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87b8e0);
-    scene.fog = new THREE.FogExp2(0x87b8e0, 0.0042);
-
-    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 300);
-    camera.position.set(8, 6.5, 18);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-    document.body.appendChild(renderer.domElement);
-
-    // Post-processing
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.28, 0.45, 0.88
-    );
-    composer.addPass(bloomPass);
-
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.maxPolarAngle = Math.PI / 2 - 0.05;
-    controls.minDistance = 6;
-    controls.maxDistance = 40;
-    controls.target.set(0, 4.2, 0);
-
-    // ====================== LIGHTING ======================
-    const hemi = new THREE.HemisphereLight(0xfff5e6, 0x3a5f2a, 0.7);
-    scene.add(hemi);
-
-    const sun = new THREE.DirectionalLight(0xfff
+</head>
+<body>
+  <!-- Load the main JavaScript file -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
