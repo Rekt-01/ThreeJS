@@ -1,233 +1,198 @@
 import * as THREE from 'three';
+import { getTerrainHeight } from './environment.js';
 
 export function setupThirdPersonControls(character, renderer) {
-    // ── Camera orbit state ──────────────────────────────────
-    let cameraAngleY = 0;      // yaw
-    let cameraAngleX = 0.25;   // pitch (slight downward look)
-    const minPitch = -0.4;
-    const maxPitch = 0.85;
+    let cameraAngleY = 0;
+    let cameraAngleX = 0.32;
+    const minPitch = -0.35;
+    const maxPitch = 0.75;
 
     let isDragging = false;
-    let previousX = 0;
-    let previousY = 0;
+    let prevX = 0;
+    let prevY = 0;
 
-    // ── Pointer / Touch look ────────────────────────────────
-    const onPointerDown = (e) => {
-        // Ignore if touching the joystick area
-        if (e.clientX < 180 && e.clientY > window.innerHeight - 180) return;
+    // ——— Look controls ———
+    const onDown = (e) => {
+        const x = e.clientX ?? e.touches?.[0]?.clientX;
+        const y = e.clientY ?? e.touches?.[0]?.clientY;
+        if (x < 170 && y > window.innerHeight - 170) return; // ignore joystick area
 
         isDragging = true;
-        previousX = e.clientX ?? e.touches?.[0]?.clientX;
-        previousY = e.clientY ?? e.touches?.[0]?.clientY;
+        prevX = x;
+        prevY = y;
     };
 
-    const onPointerMove = (e) => {
+    const onMove = (e) => {
         if (!isDragging) return;
+        const x = e.clientX ?? e.touches?.[0]?.clientX;
+        const y = e.clientY ?? e.touches?.[0]?.clientY;
+        if (x === undefined) return;
 
-        const clientX = e.clientX ?? e.touches?.[0]?.clientX;
-        const clientY = e.clientY ?? e.touches?.[0]?.clientY;
-        if (clientX === undefined) return;
+        const dx = x - prevX;
+        const dy = y - prevY;
 
-        const deltaX = clientX - previousX;
-        const deltaY = clientY - previousY;
-
-        // Sensitivity
-        cameraAngleY -= deltaX * 0.0045;
-        cameraAngleX += deltaY * 0.0035;
-
-        // Clamp pitch so you can’t flip the camera
+        cameraAngleY -= dx * 0.005;
+        cameraAngleX += dy * 0.004;
         cameraAngleX = Math.max(minPitch, Math.min(maxPitch, cameraAngleX));
 
-        previousX = clientX;
-        previousY = clientY;
+        prevX = x;
+        prevY = y;
     };
 
-    const onPointerUp = () => {
-        isDragging = false;
-    };
+    const onUp = () => { isDragging = false; };
 
-    // Mouse
-    window.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('mousemove', onPointerMove);
-    window.addEventListener('mouseup', onPointerUp);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
 
-    // Touch
     window.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) onPointerDown(e.touches[0]);
+        if (e.touches.length === 1) onDown(e.touches[0]);
     }, { passive: false });
-
     window.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1) onPointerMove(e.touches[0]);
+        if (e.touches.length === 1) onMove(e.touches[0]);
     }, { passive: false });
+    window.addEventListener('touchend', onUp);
 
-    window.addEventListener('touchend', onPointerUp);
-
-    // ── Joystick UI ─────────────────────────────────────────
-    const joystickUI = document.createElement('div');
-    joystickUI.style.cssText = `
-        position: fixed;
-        bottom: 36px;
-        left: 36px;
-        width: 130px;
-        height: 130px;
-        background: rgba(255,255,255,0.1);
-        border: 2px solid rgba(255,255,255,0.22);
-        border-radius: 50%;
-        z-index: 999;
-        touch-action: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    // ——— Joystick ———
+    const joy = document.createElement('div');
+    joy.style.cssText = `
+        position:fixed; bottom:32px; left:32px;
+        width:120px; height:120px;
+        background:rgba(255,255,255,0.12);
+        border:2px solid rgba(255,255,255,0.25);
+        border-radius:50%; z-index:999; touch-action:none;
     `;
-
     const knob = document.createElement('div');
     knob.style.cssText = `
-        width: 52px;
-        height: 52px;
-        background: rgba(255,255,255,0.55);
-        border-radius: 50%;
-        position: absolute;
-        pointer-events: none;
-        transition: transform 0.05s linear;
+        width:48px; height:48px;
+        background:rgba(255,255,255,0.55);
+        border-radius:50%; position:absolute;
+        left:36px; top:36px; pointer-events:none;
     `;
-    joystickUI.appendChild(knob);
-    document.body.appendChild(joystickUI);
+    joy.appendChild(knob);
+    document.body.appendChild(joy);
 
-    let joystickActive = false;
-    let joystickDir = new THREE.Vector2(0, 0);
+    let joyActive = false;
+    let joyDir = new THREE.Vector2();
 
-    const handleJoystick = (touch) => {
-        const rect = joystickUI.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        let dx = touch.clientX - centerX;
-        let dy = touch.clientY - centerY;
-
-        const maxRadius = 42;
-        const distance = Math.min(maxRadius, Math.hypot(dx, dy));
-        const angle = Math.atan2(dy, dx);
-
-        const knobX = Math.cos(angle) * distance;
-        const knobY = Math.sin(angle) * distance;
-
-        knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-        joystickDir.set(knobX / maxRadius, knobY / maxRadius);
+    const updateJoy = (touch) => {
+        const rect = joy.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = touch.clientX - cx;
+        let dy = touch.clientY - cy;
+        const max = 38;
+        const len = Math.min(max, Math.hypot(dx, dy));
+        const ang = Math.atan2(dy, dx);
+        const kx = Math.cos(ang) * len;
+        const ky = Math.sin(ang) * len;
+        knob.style.transform = `translate(${kx}px, ${ky}px)`;
+        // Up on stick = forward
+        joyDir.set(kx / max, -ky / max);
     };
 
-    joystickUI.addEventListener('touchstart', (e) => {
-        joystickActive = true;
-        handleJoystick(e.touches[0]);
-        e.stopPropagation();
+    joy.addEventListener('touchstart', e => {
+        joyActive = true;
+        updateJoy(e.touches[0]);
         e.preventDefault();
+        e.stopPropagation();
     }, { passive: false });
 
-    joystickUI.addEventListener('touchmove', (e) => {
-        if (joystickActive) {
-            handleJoystick(e.touches[0]);
-            e.stopPropagation();
+    joy.addEventListener('touchmove', e => {
+        if (joyActive) {
+            updateJoy(e.touches[0]);
             e.preventDefault();
+            e.stopPropagation();
         }
     }, { passive: false });
 
-    joystickUI.addEventListener('touchend', (e) => {
-        joystickActive = false;
-        joystickDir.set(0, 0);
-        knob.style.transform = `translate(0px, 0px)`;
+    joy.addEventListener('touchend', e => {
+        joyActive = false;
+        joyDir.set(0, 0);
+        knob.style.transform = 'translate(0,0)';
         e.stopPropagation();
-    }, { passive: false });
+    });
 
-    // ── Keyboard ────────────────────────────────────────────
+    // ——— Keyboard ———
     const keys = { w: false, a: false, s: false, d: false };
-
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
         if (k in keys) keys[k] = true;
     });
-    window.addEventListener('keyup', (e) => {
+    window.addEventListener('keyup', e => {
         const k = e.key.toLowerCase();
         if (k in keys) keys[k] = false;
     });
 
-    // ── Main update ─────────────────────────────────────────
+    // ——— Update loop ———
     return function updateControls(delta, camera) {
-        const moveSpeed = 7.8;
-        let isWalking = false;
+        const speed = 8.5;
+        let walking = false;
 
-        // --- Input vector (joystick + keyboard) ---
-        const input = new THREE.Vector2(0, 0);
-
-        if (joystickActive) {
-            input.x += joystickDir.x;
-            input.y += joystickDir.y;
+        // Input
+        const input = new THREE.Vector2();
+        if (joyActive) {
+            input.add(joyDir);
         }
-
-        if (keys.w) input.y -= 1;
-        if (keys.s) input.y += 1;
+        if (keys.w) input.y += 1;
+        if (keys.s) input.y -= 1;
         if (keys.a) input.x -= 1;
         if (keys.d) input.x += 1;
 
-        // Deadzone
-        if (input.length() < 0.15) {
-            input.set(0, 0);
-        } else {
+        if (input.length() > 0.15) {
             input.normalize();
-            isWalking = true;
-        }
+            walking = true;
 
-        // --- Move relative to camera ---
-        if (isWalking) {
-            // Forward direction based on camera yaw only
+            // Camera-relative movement
             const forward = new THREE.Vector3(
                 Math.sin(cameraAngleY),
                 0,
-                -Math.cos(cameraAngleY)
+                Math.cos(cameraAngleY)
             );
             const right = new THREE.Vector3(
                 Math.cos(cameraAngleY),
                 0,
-                Math.sin(cameraAngleY)
+                -Math.sin(cameraAngleY)
             );
 
-            const moveDir = new THREE.Vector3()
-                .addScaledVector(forward, -input.y)
+            const move = new THREE.Vector3()
+                .addScaledVector(forward, input.y)
                 .addScaledVector(right, input.x)
                 .normalize();
 
-            character.position.addScaledVector(moveDir, moveSpeed * delta);
+            character.position.addScaledVector(move, speed * delta);
 
-            // Smoothly rotate character to face movement direction
-            const targetRot = Math.atan2(moveDir.x, moveDir.z);
-            let diff = targetRot - character.rotation.y;
-
-            // Shortest angle
+            // Face movement direction
+            const targetAngle = Math.atan2(move.x, move.z);
+            let diff = targetAngle - character.rotation.y;
             while (diff > Math.PI) diff -= Math.PI * 2;
             while (diff < -Math.PI) diff += Math.PI * 2;
-
-            character.rotation.y += diff * Math.min(1, 12 * delta);
+            character.rotation.y += diff * Math.min(1, 10 * delta);
         }
 
-        // Clamp world bounds
-        const maxDist = 95;
-        character.position.x = THREE.MathUtils.clamp(character.position.x, -maxDist, maxDist);
-        character.position.z = THREE.MathUtils.clamp(character.position.z, -maxDist, maxDist);
+        // Keep character on terrain
+        const h = getTerrainHeight(character.position.x, character.position.z);
+        character.position.y = h;
 
-        // --- Camera follow (orbit) ---
-        const distance = 5.2;
-        const height = 1.9;
+        // Clamp bounds
+        const max = 90;
+        character.position.x = THREE.MathUtils.clamp(character.position.x, -max, max);
+        character.position.z = THREE.MathUtils.clamp(character.position.z, -max, max);
 
-        const idealOffset = new THREE.Vector3(
-            Math.sin(cameraAngleY) * Math.cos(cameraAngleX) * distance,
-            height + Math.sin(cameraAngleX) * distance * 0.7,
-            -Math.cos(cameraAngleY) * Math.cos(cameraAngleX) * distance
+        // Camera follow
+        const dist = 5.4;
+        const offset = new THREE.Vector3(
+            Math.sin(cameraAngleY) * Math.cos(cameraAngleX) * dist,
+            1.7 + Math.sin(cameraAngleX) * dist * 0.65,
+            -Math.cos(cameraAngleY) * Math.cos(cameraAngleX) * dist
         );
 
-        const targetPos = character.position.clone().add(idealOffset);
-        camera.position.lerp(targetPos, 1 - Math.exp(-8 * delta)); // smooth but responsive
+        const targetCam = character.position.clone().add(offset);
+        camera.position.lerp(targetCam, 1 - Math.exp(-10 * delta));
 
-        const lookAt = character.position.clone().add(new THREE.Vector3(0, 1.15, 0));
-        camera.lookAt(lookAt);
+        const look = character.position.clone().add(new THREE.Vector3(0, 1.3, 0));
+        camera.lookAt(look);
 
-        return isWalking;
+        return walking;
     };
 }
