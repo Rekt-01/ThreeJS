@@ -11,7 +11,7 @@ export function setupThirdPersonControls(character, renderer) {
     let prevX = 0;
     let prevY = 0;
 
-    // ——— Look controls (pitch only; yaw follows character) ———
+    // ——— Look controls (pitch only; yaw follows camera/character) ———
     const onDown = (e) => {
         const x = e.clientX ?? e.touches?.[0]?.clientX;
         const y = e.clientY ?? e.touches?.[0]?.clientY;
@@ -28,11 +28,15 @@ export function setupThirdPersonControls(character, renderer) {
         const y = e.clientY ?? e.touches?.[0]?.clientY;
         if (x === undefined) return;
 
+        const dx = x - prevX;
         const dy = y - prevY;
 
-        // Only pitch — yaw is locked to character facing
+        // Pitch & Yaw via dragging
         cameraAngleX += dy * 0.004;
         cameraAngleX = Math.max(minPitch, Math.min(maxPitch, cameraAngleX));
+        
+        // Allow free camera look or let it follow
+        cameraAngleY -= dx * 0.004;
 
         prevX = x;
         prevY = y;
@@ -139,17 +143,16 @@ export function setupThirdPersonControls(character, renderer) {
             input.normalize();
             walking = true;
 
-            // Move relative to where the CHARACTER is facing
-            const facing = character.rotation.y;
+            // FIX: Move relative to the CAMERA angle instead of character rotation
             const forward = new THREE.Vector3(
-                Math.sin(facing),
+                Math.sin(cameraAngleY),
                 0,
-                Math.cos(facing)
+                Math.cos(cameraAngleY)
             );
             const right = new THREE.Vector3(
-                Math.cos(facing),
+                Math.cos(cameraAngleY),
                 0,
-                -Math.sin(facing)
+                -Math.sin(cameraAngleY)
             );
 
             const move = new THREE.Vector3()
@@ -159,7 +162,7 @@ export function setupThirdPersonControls(character, renderer) {
 
             character.position.addScaledVector(move, speed * delta);
 
-            // Turn character toward movement direction
+            // Turn character smoothly toward movement direction
             const targetAngle = Math.atan2(move.x, move.z);
             let diff = targetAngle - character.rotation.y;
             while (diff > Math.PI) diff -= Math.PI * 2;
@@ -167,12 +170,16 @@ export function setupThirdPersonControls(character, renderer) {
             character.rotation.y += diff * Math.min(1, 10 * delta);
         }
 
-        // Camera yaw smoothly locks behind his back
+        // Camera yaw smoothly locks behind character if not dragging
         const targetYaw = character.rotation.y;
         let yawDiff = targetYaw - cameraAngleY;
         while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
         while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-        cameraAngleY += yawDiff * Math.min(1, 8 * delta);
+        
+        // Only auto-align camera if user isn't actively right-click/drag looking around
+        if (!isDragging) {
+            cameraAngleY += yawDiff * Math.min(1, 8 * delta);
+        }
 
         // Terrain height + foot offset + walk bob
         const FOOT_OFFSET = 0.16;
@@ -184,7 +191,7 @@ export function setupThirdPersonControls(character, renderer) {
         character.position.x = THREE.MathUtils.clamp(character.position.x, -max, max);
         character.position.z = THREE.MathUtils.clamp(character.position.z, -max, max);
 
-        // Camera always behind the character
+        // Camera position update
         const dist = 5.4;
         const offset = new THREE.Vector3(
             Math.sin(cameraAngleY) * Math.cos(cameraAngleX) * dist,
