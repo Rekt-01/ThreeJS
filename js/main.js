@@ -23,9 +23,14 @@ try {
 
     // Character
     const character = createProceduralCharacter();
+    
+    // ——— CUSTOM STARTING POSITION ———
+    // Change these values (X, Y, Z) to spawn the character wherever you want!
+    character.mesh.position.set(25, 0, -35);
+    
     scene.add(character.mesh);
 
-    // Controls
+    // Controls (handles cinematic intro and corrected movement)
     const updateControls = setupThirdPersonControls(character.mesh, renderer);
 
     // Animate
