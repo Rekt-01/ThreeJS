@@ -10,9 +10,57 @@
             overflow: hidden;
             background-color: #87CEEB;
             touch-action: none;
+            font-family: system-ui, -apple-system, sans-serif;
         }
         canvas {
             display: block;
+        }
+        /* ——— Splash Screen Styling ——— */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease;
+        }
+        #splash-screen h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin: 0 0 10px 0;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+        #splash-screen p {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            margin: 0 0 30px 0;
+            opacity: 0.9;
+        }
+        #enter-btn {
+            background: #8bc34a;
+            color: #111;
+            border: none;
+            padding: 16px 36px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background 0.2s;
+            touch-action: manipulation;
+        }
+        #enter-btn:active {
+            transform: scale(0.95);
+            background: #7cb342;
         }
     </style>
     <!-- Global Error Catcher for iPhone -->
@@ -34,6 +82,23 @@
     </script>
 </head>
 <body>
+
+    <!-- Splash Screen Overlay -->
+    <div id="splash-screen">
+        <h1>Welcome to RUG WORLD</h1>
+        <p>🌱 Touch some grass 🌱</p>
+        <button id="enter-btn">Enter World</button>
+    </div>
+
+    <!-- Script to handle dismissal -->
+    <script>
+        document.getElementById('enter-btn').addEventListener('click', () => {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => splash.remove(), 500); // Fades out cleanly, then removes from DOM
+        });
+    </script>
+
     <script type="module" src="./js/main.js"></script>
 </body>
 </html>
