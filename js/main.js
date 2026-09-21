@@ -6,6 +6,7 @@ import { setupThirdPersonControls } from './controls.js';
 import { createProceduralCharacter } from './character.js';
 import { createLandmarks } from './landmarks.js';
 import { createWorldProps } from './worldProps.js';
+import { createSignPost } from './signPost.js'; // <-- Added import for the sign post
 
 try {
     const { scene, camera, renderer, composer } = createSceneSetup();
@@ -14,6 +15,7 @@ try {
     createEnvironment(scene);
     createLandmarks(scene);
     createWorldProps(scene);
+    createSignPost(scene); // <-- Added sign post to the world generation
 
     // Big original tree (focal point)
     const mainTree = createProceduralTree();
@@ -24,8 +26,7 @@ try {
     // Character
     const character = createProceduralCharacter();
     
-    // ——— CUSTOM STARTING POSITION ———
-    // Change these values (X, Y, Z) to spawn the character wherever you want!
+    // Custom starting position
     character.mesh.position.set(25, 0, -35);
     
     scene.add(character.mesh);
