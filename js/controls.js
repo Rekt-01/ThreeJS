@@ -87,6 +87,7 @@ export function setupThirdPersonControls(character, renderer) {
         const kx = Math.cos(ang) * len;
         const ky = Math.sin(ang) * len;
         knob.style.transform = `translate(${kx}px, ${ky}px)`;
+        // Up on stick = forward
         joyDir.set(kx / max, -ky / max);
     };
 
@@ -139,17 +140,17 @@ export function setupThirdPersonControls(character, renderer) {
             input.normalize();
             walking = true;
 
-            // Match camera look direction on the ground plane
-            // (camera sits at sin(y), -cos(y) relative to the character)
+            // Camera sits at (sin(y), …, -cos(y)) → look dir on ground is (-sin, 0, cos)
             const forward = new THREE.Vector3(
                 -Math.sin(cameraAngleY),
                 0,
                 Math.cos(cameraAngleY)
             );
+            // Right = look × up (fixes inverted A/D)
             const right = new THREE.Vector3(
-                Math.cos(cameraAngleY),
+                -Math.cos(cameraAngleY),
                 0,
-                Math.sin(cameraAngleY)
+                -Math.sin(cameraAngleY)
             );
 
             const move = new THREE.Vector3()
@@ -166,10 +167,11 @@ export function setupThirdPersonControls(character, renderer) {
             character.rotation.y += diff * Math.min(1, 10 * delta);
         }
 
-        // Terrain height + walk/idle bob from character.js
+        // Boot bottoms are ~0.16 above character origin in your model
+        const FOOT_OFFSET = 0.16;
         const h = getTerrainHeight(character.position.x, character.position.z);
         const bob = character.userData.verticalBob || 0;
-        character.position.y = h + bob;
+        character.position.y = h - FOOT_OFFSET + bob;
 
         const max = 90;
         character.position.x = THREE.MathUtils.clamp(character.position.x, -max, max);
