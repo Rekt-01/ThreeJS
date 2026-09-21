@@ -17,14 +17,12 @@ export function createProceduralCharacter() {
     const headGroup = new THREE.Group();
     headGroup.position.y = 1.55;
 
-    // Simple boxy head
     const head = new THREE.Mesh(
         new THREE.BoxGeometry(0.32, 0.36, 0.30),
         skinMat
     );
     headGroup.add(head);
 
-    // Hair / hood top
     const hair = new THREE.Mesh(
         new THREE.BoxGeometry(0.34, 0.18, 0.32),
         hairMat
@@ -32,28 +30,24 @@ export function createProceduralCharacter() {
     hair.position.y = 0.14;
     headGroup.add(hair);
 
-    // ── HOCKEY MASK (iconic + ultra simple) ──────────────────
+    // ── HOCKEY MASK ──────────────────────────────────────────
     const maskGroup = new THREE.Group();
     maskGroup.position.set(0, 0.02, 0.16);
 
-    // Main mask plate
     const mask = new THREE.Mesh(
         new THREE.BoxGeometry(0.34, 0.38, 0.06),
         maskMat
     );
     maskGroup.add(mask);
 
-    // Cross eyes
     const eyeH = new THREE.BoxGeometry(0.07, 0.025, 0.08);
     const eyeV = new THREE.BoxGeometry(0.025, 0.09, 0.08);
 
-    // Left eye
     const leftH = new THREE.Mesh(eyeH, darkMat);
     leftH.position.set(-0.08, 0.07, 0.02);
     const leftV = new THREE.Mesh(eyeV, darkMat);
     leftV.position.set(-0.08, 0.07, 0.02);
 
-    // Right eye
     const rightH = new THREE.Mesh(eyeH, darkMat);
     rightH.position.set(0.08, 0.07, 0.02);
     const rightV = new THREE.Mesh(eyeV, darkMat);
@@ -61,7 +55,6 @@ export function createProceduralCharacter() {
 
     maskGroup.add(leftH, leftV, rightH, rightV);
 
-    // Mouth vents (simple vertical slots)
     for (let i = -1; i <= 1; i++) {
         const vent = new THREE.Mesh(
             new THREE.BoxGeometry(0.03, 0.07, 0.08),
@@ -71,14 +64,15 @@ export function createProceduralCharacter() {
         maskGroup.add(vent);
     }
 
-    // Side straps
-    const strap = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 0.28, 0.05),
+    const leftStrap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.08, 0.18),
         strapMat
     );
-    const leftStrap = strap.clone();
     leftStrap.position.set(-0.18, 0.02, -0.05);
-    const rightStrap = strap.clone();
+    const rightStrap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.08, 0.18),
+        strapMat
+    );
     rightStrap.position.set(0.18, 0.02, -0.05);
     maskGroup.add(leftStrap, rightStrap);
 
@@ -94,7 +88,6 @@ export function createProceduralCharacter() {
     torso.castShadow = true;
     character.add(torso);
 
-    // Simple collar
     const collar = new THREE.Mesh(
         new THREE.BoxGeometry(0.36, 0.08, 0.30),
         shirtMat
@@ -103,16 +96,14 @@ export function createProceduralCharacter() {
     character.add(collar);
 
     // ── ARMS ─────────────────────────────────────────────────
-    const armGeo = new THREE.BoxGeometry(0.12, 0.48, 0.12);
+    const armGeo = new THREE.BoxGeometry(0.12, 0.42, 0.12);
+    const handGeo = new THREE.BoxGeometry(0.11, 0.11, 0.11);
 
     const leftArm = new THREE.Group();
     leftArm.position.set(-0.28, 1.22, 0);
     const leftArmMesh = new THREE.Mesh(armGeo, shirtMat);
     leftArmMesh.position.y = -0.18;
     leftArm.add(leftArmMesh);
-
-    // Simple hand
-    const handGeo = new THREE.BoxGeometry(0.13, 0.13, 0.13);
     const leftHand = new THREE.Mesh(handGeo, skinMat);
     leftHand.position.y = -0.46;
     leftArm.add(leftHand);
@@ -137,7 +128,6 @@ export function createProceduralCharacter() {
     leftLegMesh.position.y = -0.20;
     leftLeg.add(leftLegMesh);
 
-    // Boot
     const bootGeo = new THREE.BoxGeometry(0.16, 0.12, 0.22);
     const leftBoot = new THREE.Mesh(bootGeo, bootMat);
     leftBoot.position.set(0, -0.50, 0.03);
@@ -167,27 +157,21 @@ export function createProceduralCharacter() {
                 const swing = Math.sin(phase);
                 const bob = Math.sin(phase * 2) * 0.04;
 
-                // Body bob
-                character.position.y = bob;
+                // Only store bob — controls owns world Y (terrain + offset)
+                character.userData.verticalBob = bob;
 
-                // Arms
                 leftArm.rotation.x = swing * 0.7;
                 rightArm.rotation.x = -swing * 0.7;
-
-                // Legs
                 leftLeg.rotation.x = -swing * 0.65;
                 rightLeg.rotation.x = swing * 0.65;
-
-                // Slight torso twist
                 torso.rotation.y = swing * 0.08;
                 headGroup.rotation.y = -swing * 0.1;
 
             } else {
-                // Idle
                 phase = 0;
                 const breath = Math.sin(time * 2) * 0.015;
+                character.userData.verticalBob = breath;
 
-                character.position.y = THREE.MathUtils.lerp(character.position.y, breath, 0.1);
                 leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.1, 0.1);
                 rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, -0.1, 0.1);
                 leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.1);
