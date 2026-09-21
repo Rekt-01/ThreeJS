@@ -168,9 +168,9 @@ export function setupThirdPersonControls(character, renderer) {
         const input = new THREE.Vector2();
         if (joyActive) input.add(joyDir);
         
-        // FIXED: Reversed axis mappings so W / Up moves forward properly
-        if (keys.w) input.y -= 1;
-        if (keys.s) input.y += 1;
+        // Correct standard mappings (W = forward, S = backward)
+        if (keys.w) input.y += 1;
+        if (keys.s) input.y -= 1;
         if (keys.a) input.x -= 1;
         if (keys.d) input.x += 1;
 
@@ -178,7 +178,8 @@ export function setupThirdPersonControls(character, renderer) {
             input.normalize();
             walking = true;
 
-            const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), character.rotation.y);
+            // FIXED: Pointing forward down the negative Z-axis (-1)
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), character.rotation.y);
             const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), character.rotation.y);
 
             const move = new THREE.Vector3()
