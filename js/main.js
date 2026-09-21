@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { createSceneSetup } from './sceneSetup.js';
-import { createEnvironment } from './environment.js';
+import { createEnvironment, getTerrainHeight } from './environment.js';
 import { createProceduralTree } from './treeGenerator.js';
 import { setupThirdPersonControls } from './controls.js';
 import { createProceduralCharacter } from './character.js';
 import { createLandmarks } from './landmarks.js';
 import { createWorldProps } from './worldProps.js';
-import { createSignPost } from './signPost.js'; // <-- Added import for the sign post
+import { createSignPost } from './signPost.js';
 
 try {
     const { scene, camera, renderer, composer } = createSceneSetup();
@@ -15,7 +15,9 @@ try {
     createEnvironment(scene);
     createLandmarks(scene);
     createWorldProps(scene);
-    createSignPost(scene); // <-- Added sign post to the world generation
+
+    // Place sign post right in front of spawn point (Spawn is at X: 25, Z: -35)
+    createSignPost(scene, 25, -40);
 
     // Big original tree (focal point)
     const mainTree = createProceduralTree();
@@ -26,12 +28,15 @@ try {
     // Character
     const character = createProceduralCharacter();
     
-    // Custom starting position
-    character.mesh.position.set(25, 0, -35);
+    // Custom starting position + instant terrain snap to prevent leg sinking on spawn
+    const spawnX = 25;
+    const spawnZ = -35;
+    const spawnY = getTerrainHeight(spawnX, spawnZ) - 0.16;
+    character.mesh.position.set(spawnX, spawnY, spawnZ);
     
     scene.add(character.mesh);
 
-    // Controls (handles cinematic intro and corrected movement)
+    // Controls
     const updateControls = setupThirdPersonControls(character.mesh, renderer);
 
     // Animate
