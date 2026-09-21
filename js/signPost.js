@@ -1,57 +1,47 @@
 import * as THREE from 'three';
 
-export function createSignPost(scene) {
+export function createSignPost(scene, x = 3, z = 4) {
     const signGroup = new THREE.Group();
 
-    // ── Materials ────────────────────────────────────────────
-    const woodMat = new THREE.MeshLambertMaterial({ color: 0x8B5A2B }); // Brown wood
+    const woodMat = new THREE.MeshLambertMaterial({ color: 0x8B5A2B });
     const darkWoodMat = new THREE.MeshLambertMaterial({ color: 0x5C4033 });
 
-    // ── Wooden Post (Vertical Pole) ──────────────────────────
     const postGeo = new THREE.BoxGeometry(0.15, 2.2, 0.15);
     const post = new THREE.Mesh(postGeo, darkWoodMat);
     post.position.y = 1.1;
     post.castShadow = true;
     signGroup.add(post);
 
-    // ── Sign Board (Rectangle) ───────────────────────────────
     const boardGeo = new THREE.BoxGeometry(1.8, 0.9, 0.08);
     const board = new THREE.Mesh(boardGeo, woodMat);
     board.position.set(0, 1.8, 0.05);
     board.castShadow = true;
     signGroup.add(board);
 
-    // ── Dynamic Canvas Texture for Text ──────────────────────
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
 
-    // Background fill for the board face
-    ctx.fillStyle = '#deb887'; // Burlywood / aged wood color
+    ctx.fillStyle = '#deb887';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Border edge
     ctx.lineWidth = 12;
     ctx.strokeStyle = '#5c4033';
     ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
 
-    // Text styling
     ctx.fillStyle = '#111111';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Line 1: Welcome to RUG WORLD
     ctx.font = 'bold 36px sans-serif';
     ctx.fillText('WELCOME TO', canvas.width / 2, 70);
     ctx.fillText('RUG WORLD', canvas.width / 2, 115);
 
-    // Line 2: population You!!
     ctx.font = 'bold 28px sans-serif';
-    ctx.fillStyle = '#d32f2f'; // Pop of color for emphasis
+    ctx.fillStyle = '#d32f2f';
     ctx.fillText('population: You!!', canvas.width / 2, 180);
 
-    // Apply canvas as a texture onto a flat plane on the front of the sign
     const texture = new THREE.CanvasTexture(canvas);
     const textPlaneGeo = new THREE.PlaneGeometry(1.7, 0.8);
     const textPlaneMat = new THREE.MeshBasicMaterial({ map: texture });
@@ -59,10 +49,9 @@ export function createSignPost(scene) {
     textPlane.position.set(0, 1.8, 0.1);
     signGroup.add(textPlane);
 
-    // ── Position the whole sign in the world ─────────────────
-    // Place it slightly off-center near the spawn point / main tree
-    signGroup.position.set(3, 0, 4);
-    signGroup.rotation.y = Math.PI / 6; // Slight artistic angle
+    // Position the sign post relative to arguments passed
+    signGroup.position.set(x, 0, z);
+    signGroup.rotation.y = Math.PI; // Face toward the player spawn
 
     scene.add(signGroup);
 }
