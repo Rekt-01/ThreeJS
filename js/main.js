@@ -15,7 +15,7 @@ try {
     createLandmarks(scene);
     createWorldProps(scene);
 
-    // Big original tree (keep it as a focal point)
+    // Big original tree (focal point)
     const mainTree = createProceduralTree();
     mainTree.position.set(0, 0, 0);
     mainTree.scale.setScalar(1.15);
