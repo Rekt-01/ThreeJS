@@ -16,6 +16,7 @@ export function createProceduralCharacter() {
     // ── HEAD (oversized for stylized look) ───────────────────
     const headGroup = new THREE.Group();
     headGroup.position.y = 1.55;
+    headGroup.rotation.y = Math.PI; // FIX: Rotates the head 180 degrees to face forward
 
     const head = new THREE.Mesh(
         new THREE.BoxGeometry(0.32, 0.36, 0.30),
@@ -139,6 +140,7 @@ export function createProceduralCharacter() {
     const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
     rightLegMesh.position.y = -0.20;
     rightLeg.add(rightLegMesh);
+
     const rightBoot = new THREE.Mesh(bootGeo, bootMat);
     rightBoot.position.set(0, -0.50, 0.03);
     rightLeg.add(rightBoot);
@@ -165,7 +167,7 @@ export function createProceduralCharacter() {
                 leftLeg.rotation.x = -swing * 0.65;
                 rightLeg.rotation.x = swing * 0.65;
                 torso.rotation.y = swing * 0.08;
-                headGroup.rotation.y = -swing * 0.1;
+                headGroup.rotation.y = Math.PI - (swing * 0.1); // Keep offset while swinging
 
             } else {
                 phase = 0;
@@ -177,7 +179,7 @@ export function createProceduralCharacter() {
                 leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.1);
                 rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.1);
                 torso.rotation.y = THREE.MathUtils.lerp(torso.rotation.y, 0, 0.1);
-                headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, 0, 0.1);
+                headGroup.rotation.y = THREE.MathUtils.lerp(headGroup.rotation.y, Math.PI, 0.1);
             }
         }
     };
