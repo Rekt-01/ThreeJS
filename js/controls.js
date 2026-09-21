@@ -4,6 +4,7 @@ import { getTerrainHeight } from './environment.js';
 export function setupThirdPersonControls(character, renderer) {
     let cameraAngleX = 0.32;
     let cameraDistance = 5.4;
+    let currentCamYaw = 0; // Tracks smooth camera lag rotation
     
     const minPitch = -0.35;
     const maxPitch = 0.75;
@@ -12,17 +13,15 @@ export function setupThirdPersonControls(character, renderer) {
     let prevX = 0;
     let prevY = 0;
 
-    // ——— Cinematic Intro State ———
     let isCinematic = true;
     let cinematicTimer = 0;
-    const cinematicDuration = 3.5; // Duration of camera pan in seconds
+    const cinematicDuration = 3.5;
 
-    // ——— Mouse & Touch Look Controls ———
     const onDown = (e) => {
-        if (isCinematic) return; // Block looking during intro pan
+        if (isCinematic) return;
         const x = e.clientX ?? e.touches?.[0]?.clientX;
         const y = e.clientY ?? e.touches?.[0]?.clientY;
-        if (x < 170 && y > window.innerHeight - 170) return; // ignore joystick area
+        if (x < 170 && y > window.innerHeight - 170) return;
 
         isDragging = true;
         prevX = x;
@@ -60,7 +59,6 @@ export function setupThirdPersonControls(character, renderer) {
     }, { passive: false });
     window.addEventListener('touchend', onUp);
 
-    // ——— Joystick ———
     const joy = document.createElement('div');
     joy.style.cssText = `
         position:fixed; bottom:32px; left:32px;
@@ -121,7 +119,6 @@ export function setupThirdPersonControls(character, renderer) {
         e.stopPropagation();
     });
 
-    // ——— Keyboard ———
     const keys = { w: false, a: false, s: false, d: false };
     window.addEventListener('keydown', e => {
         if (isCinematic) return;
@@ -133,17 +130,14 @@ export function setupThirdPersonControls(character, renderer) {
         if (k in keys) keys[k] = false;
     });
 
-    // ——— Update loop ———
     return function updateControls(delta, camera) {
         const speed = 8.5;
         let walking = false;
 
-        // --- CINEMATIC INTRO MODE ---
         if (isCinematic) {
             cinematicTimer += delta;
             const progress = cinematicTimer / cinematicDuration;
 
-            // Smooth cinematic orbit angle around character
             const cinematicAngle = progress * Math.PI * 1.5; 
             const cineDist = cameraDistance + Math.sin(progress * Math.PI) * 2;
             
@@ -159,16 +153,15 @@ export function setupThirdPersonControls(character, renderer) {
             camera.lookAt(character.position.clone().add(new THREE.Vector3(0, 1.3, 0)));
 
             if (cinematicTimer >= cinematicDuration) {
-                isCinematic = false; // End intro, allow controls
+                isCinematic = false;
+                currentCamYaw = character.rotation.y; // Sync camera yaw when entering game
             }
             return false;
         }
 
-        // --- NORMAL GAMEPLAY CONTROLS ---
         const input = new THREE.Vector2();
         if (joyActive) input.add(joyDir);
         
-        // Correct standard mappings (W = forward, S = backward)
         if (keys.w) input.y += 1;
         if (keys.s) input.y -= 1;
         if (keys.a) input.x -= 1;
@@ -178,7 +171,6 @@ export function setupThirdPersonControls(character, renderer) {
             input.normalize();
             walking = true;
 
-            // FIXED: Pointing forward down the negative Z-axis (-1)
             const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), character.rotation.y);
             const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), character.rotation.y);
 
@@ -202,8 +194,15 @@ export function setupThirdPersonControls(character, renderer) {
         character.position.x = THREE.MathUtils.clamp(character.position.x, -max, max);
         character.position.z = THREE.MathUtils.clamp(character.position.z, -max, max);
 
-        const offsetX = Math.sin(character.rotation.y) * Math.cos(cameraAngleX) * cameraDistance;
-        const offsetZ = Math.cos(character.rotation.y) * Math.cos(cameraAngleX) * cameraDistance;
+        // Smoothly lag camera yaw behind character rotation for fluid cinematic feel
+        let targetYaw = character.rotation.y;
+        let yawDiff = targetYaw - currentCamYaw;
+        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+        currentCamYaw += yawDiff * Math.min(1, 6 * delta);
+
+        const offsetX = Math.sin(currentCamYaw) * Math.cos(cameraAngleX) * cameraDistance;
+        const offsetZ = Math.cos(currentCamYaw) * Math.cos(cameraAngleX) * cameraDistance;
         const offsetY = 1.7 + Math.sin(cameraAngleX) * cameraDistance * 0.65;
 
         const targetCamPos = new THREE.Vector3(
@@ -212,7 +211,7 @@ export function setupThirdPersonControls(character, renderer) {
             character.position.z + offsetZ
         );
 
-        camera.position.lerp(targetCamPos, 1 - Math.exp(-14 * delta));
+        camera.position.lerp(targetCamPos, 1 - Math.exp(-10 * delta));
         camera.lookAt(character.position.clone().add(new THREE.Vector3(0, 1.3, 0)));
 
         return walking;
