@@ -87,7 +87,6 @@ export function setupThirdPersonControls(character, renderer) {
         const kx = Math.cos(ang) * len;
         const ky = Math.sin(ang) * len;
         knob.style.transform = `translate(${kx}px, ${ky}px)`;
-        // Up on stick = forward
         joyDir.set(kx / max, -ky / max);
     };
 
@@ -129,11 +128,8 @@ export function setupThirdPersonControls(character, renderer) {
         const speed = 8.5;
         let walking = false;
 
-        // Input
         const input = new THREE.Vector2();
-        if (joyActive) {
-            input.add(joyDir);
-        }
+        if (joyActive) input.add(joyDir);
         if (keys.w) input.y += 1;
         if (keys.s) input.y -= 1;
         if (keys.a) input.x -= 1;
@@ -143,16 +139,17 @@ export function setupThirdPersonControls(character, renderer) {
             input.normalize();
             walking = true;
 
-            // Camera-relative movement
+            // Match camera look direction on the ground plane
+            // (camera sits at sin(y), -cos(y) relative to the character)
             const forward = new THREE.Vector3(
-                Math.sin(cameraAngleY),
+                -Math.sin(cameraAngleY),
                 0,
                 Math.cos(cameraAngleY)
             );
             const right = new THREE.Vector3(
                 Math.cos(cameraAngleY),
                 0,
-                -Math.sin(cameraAngleY)
+                Math.sin(cameraAngleY)
             );
 
             const move = new THREE.Vector3()
@@ -162,7 +159,6 @@ export function setupThirdPersonControls(character, renderer) {
 
             character.position.addScaledVector(move, speed * delta);
 
-            // Face movement direction
             const targetAngle = Math.atan2(move.x, move.z);
             let diff = targetAngle - character.rotation.y;
             while (diff > Math.PI) diff -= Math.PI * 2;
@@ -170,16 +166,15 @@ export function setupThirdPersonControls(character, renderer) {
             character.rotation.y += diff * Math.min(1, 10 * delta);
         }
 
-        // Keep character on terrain
+        // Terrain height + walk/idle bob from character.js
         const h = getTerrainHeight(character.position.x, character.position.z);
-        character.position.y = h;
+        const bob = character.userData.verticalBob || 0;
+        character.position.y = h + bob;
 
-        // Clamp bounds
         const max = 90;
         character.position.x = THREE.MathUtils.clamp(character.position.x, -max, max);
         character.position.z = THREE.MathUtils.clamp(character.position.z, -max, max);
 
-        // Camera follow
         const dist = 5.4;
         const offset = new THREE.Vector3(
             Math.sin(cameraAngleY) * Math.cos(cameraAngleX) * dist,
